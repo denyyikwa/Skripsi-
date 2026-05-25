@@ -1,0 +1,56 @@
+# SCENARIO
+Scenario.name = DTN_Threshold_Simulation
+Scenario.endTime = 43200
+
+# INTERFACE
+btInterface.type = SimpleBroadcastInterface
+btInterface.transmitSpeed = 250k
+btInterface.transmitRange = 120
+
+# NODE
+Group.nrofHosts = 150
+
+# MOVEMENT
+Group.movementModel = RandomWaypoint
+MovementModel.worldSize = 5000,5000
+Group.speed = 0.5,1.5
+Group.waitTime = 0,120
+
+# ROUTING
+Group.router = ThresholdBatteryBufferRouter
+
+# BUFFER & TTL
+Group.bufferSize = 10M
+Group.msgTtl = 300
+
+# INTERFACE
+Group.nrofInterfaces = 1
+Group.interface1 = btInterface
+
+Group.intialEnergy = 1000
+Group.scanEnergy = 0.01
+Group.transmitEnergy = 0.2
+Group.energyWarmup = 0
+Group.scanInterval = 10
+
+SimpleEnergyModel.intialEnergy = 1000
+SimpleEnergyModel.transmitEnergy = 0.2
+SimpleEnergyModel.receiveEnergy = 0.1
+
+# PARAMETER
+Group.ThresholdBatteryBufferRouter.batteryThreshold = 0.2
+Group.ThresholdBatteryBufferRouter.bufferThreshold = 0.7
+
+# MESSAGE
+Events.nrof = 1
+Events1.class = MessageEventGenerator
+Events1.interval = 10,20
+Events1.size = 500k,1M
+Events1.hosts = 0,149
+
+# REPORT
+Report.nrofReports = 4
+Report.report1 = MessageStatsReport    
+Report.report2 = BufferOccupancyReport 
+Report.report3 = MessageCopyCountReport
+Report.report4 = ContactTimesReport

@@ -1,0 +1,3 @@
+@echo off
+java -cp src;libs/* core.DTNConsole %1
+pause

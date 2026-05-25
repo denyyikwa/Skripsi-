@@ -1,0 +1,158 @@
+kelas
+package movement;
+
+import core.Coord;
+import core.Settings;
+
+public class LevyWalkMovement extends MovementModel {
+
+     /**
+     * @author Trustacean
+     */
+    private Coord lastWaypoint;
+    private double alpha; // Ditambahkan: parameter alpha
+
+    public LevyWalkMovement(Settings settings) {
+        super(settings);
+        this.alpha = settings.getDouble("alpha"); // Ambil dari config, default 0.5
+    }
+
+    public LevyWalkMovement(LevyWalkMovement lw) {
+        super(lw);
+        this.alpha = lw.alpha; // Salin nilai alpha dari objek lama
+    }
+
+    @Override
+    public Path getPath() {
+        Path p = new Path(generateSpeed());
+        p.addWaypoint(lastWaypoint.clone());
+        Coord nextWaypoint = null;
+
+        int attempt = 0;
+
+        while (true) {
+            double stepLength = getRandomPareto(alpha) - (attempt * 0.1); // Gunakan field alpha
+            double theta = rng.nextDouble() * 2 * Math.PI;
+
+            double newX = lastWaypoint.getX() + stepLength * Math.cos(theta);
+            double newY = lastWaypoint.getY() + stepLength * Math.sin(theta);
+
+            nextWaypoint = new Coord(newX, newY);
+
+            if (newX > 0 && newY > 0 && newX < getMaxX() && newY < getMaxY()) {
+                break;
+            }
+
+            attempt++;
+        }
+
+        p.addWaypoint(nextWaypoint);
+        lastWaypoint = nextWaypoint;
+
+        return p;
+    }
+
+    @Override
+    public Coord getInitialLocation() {
+        assert rng != null : "MovementModel not initialized!";
+        Coord c = new Coord(rng.nextDouble() * getMaxX(), rng.nextDouble() * getMaxY());
+
+        this.lastWaypoint = c;
+        return c;
+    }
+
+    @Override
+    public MovementModel replicate() {
+        return new LevyWalkMovement(this);
+    }
+
+    private double getRandomPareto(double alpha) {
+        double u = rng.nextDouble();
+        return Math.pow(1.0 - u, -1.0 / alpha);
+    }
+}
+
+
+#===========================================================================
+# SCENARIO CONFIGURATION
+#===========================================================================
+[ Scenario ]
+Scenario.name = LevyWalk
+Scenario.simulateConnections = true
+Scenario.nrofHostGroups = 3
+Scenario.updateInterval = 1
+Scenario.endTime = 432000
+
+#===========================================================================
+# GROUP SPECIFIC SETTINGS
+#===========================================================================
+[ Common settings ]
+Group.router = EpidemicRouter
+Group.nrofInterfaces = 1
+Group.interface1 = btInterface
+btInterface.type = SimpleBroadcastInterface
+btInterface.transmitSpeed = 230k
+btInterface.transmitRange = 10
+btInterface.scanInterval = 80
+
+#===========================================================================
+# GROUP SPECIFIC SETTINGS
+#===========================================================================
+[ Common settings (for all groups) ]
+Group.movementModel = LevyWalkMovement
+Group.nrofHosts = 4
+Group.alpha = 0.5
+
+Group1.groupID = N
+Group1.nrofHosts = 1
+Group1.color = 0,0,255
+Group1.speed = 0.5, 1.5
+Group1.waitTime = 0, 120
+
+Group2.groupID = N
+Group2.nrofHosts = 1
+Group2.color = 128,0,128
+Group2.speed = 0.5, 1.5
+Group2.waitTime = 0, 120
+
+Group3.groupID = N
+Group3.nrofHosts = 1
+Group3.color = 255, 0, 255
+Group3.speed = 0.5, 1.5
+Group3.waitTime = 0, 120
+
+Group4.groupID = N
+Group4.nrofHosts = 1
+Group4.color = 255, 0, 0
+Group4.speed = 0.5, 1.5
+Group4.waitTime = 0, 120
+
+#===========================================================================
+# EVENTS SETTINGS
+#===========================================================================
+[ General events parameters ]
+Events.nrof = 1
+
+[ Events1 ]
+Events1.class = MessageEventGenerator
+Events1.interval = 25,35
+Events1.size = 500k,1M
+Events1.hosts = 0,2
+Events1.prefix = M
+
+#===========================================================================
+# MOVEMENT SETTINGS
+#===========================================================================
+[ Movement model settings ]
+MovementModel.rngSeed = 1
+MovementModel.worldSize = 450, 340
+MovementModel.warmup = 1000
+
+#===========================================================================
+# REPORT SETTINGS
+#===========================================================================
+Report.nrofReports = 1
+Report.warmup = 1
+Report.reportDir = reports/LevyWalkMovement_UAS
+Report.report1 = MessageStatsReport
+
