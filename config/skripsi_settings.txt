@@ -27,6 +27,7 @@ Group.msgTtl = 300
 Group.nrofInterfaces = 1
 Group.interface1 = btInterface
 
+# ENERGY
 Group.intialEnergy = 1000
 Group.scanEnergy = 0.01
 Group.transmitEnergy = 0.2
@@ -37,7 +38,7 @@ SimpleEnergyModel.intialEnergy = 1000
 SimpleEnergyModel.transmitEnergy = 0.2
 SimpleEnergyModel.receiveEnergy = 0.1
 
-# PARAMETER
+# PARAMETER THRESHOLD
 Group.ThresholdBatteryBufferRouter.batteryThreshold = 0.2
 Group.ThresholdBatteryBufferRouter.bufferThreshold = 0.7
 
