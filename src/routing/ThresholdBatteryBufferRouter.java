@@ -6,81 +6,100 @@ import core.Message;
 import core.Settings;
 import java.util.List;
 
+// NARA: extend dari EnergyAwareRouter karena sudah ada mekanisme untuk baterai (energy)
 public class ThresholdBatteryBufferRouter extends EnergyAwareRouter {
 
     private double batteryThreshold;
     private double bufferThreshold;
-    private double configMaxEnergy; 
 
     public ThresholdBatteryBufferRouter(Settings s) {
         super(s);
-        // Membaca threshold dari file konfigurasi
         batteryThreshold = s.getDouble("ThresholdBatteryBufferRouter.batteryThreshold");
         bufferThreshold = s.getDouble("ThresholdBatteryBufferRouter.bufferThreshold");
-        
-        double[] energies = s.getCsvDoubles(INIT_ENERGY_S);
-        this.configMaxEnergy = energies[energies.length - 1];
     }
 
     protected ThresholdBatteryBufferRouter(ThresholdBatteryBufferRouter r) {
         super(r);
         this.batteryThreshold = r.batteryThreshold;
         this.bufferThreshold = r.bufferThreshold;
-        this.configMaxEnergy = r.configMaxEnergy;
     }
 
     @Override
     public void update() {
-        reduceSendingAndScanningEnergy(); 
-            
-        if (isTransferring() || !canStartTransfer()) {
-            return; 
-        }
-        
+        super.update();
+
+        // Jika sedang transfer atau tidak bisa mulai
+        if (isTransferring())
+            return;
+        if (!canStartTransfer())
+            return;
+
+        // CEK BATTERY
+
+        // NARA: baca dari EnergyAwareRouter, default 100.0 jika tidak ada
+        // double battery = getHost().getComBus().getDouble("Energy.value", 100.0);
+
+        // if (battery < batteryThreshold) {
+        // return; // stop kirim jika baterai rendah
+        // }
+
+        // // CEK BUFFER
+
+        // double usedBuffer = getBufferSize() - getFreeBufferSize();
+        // double bufferUsage = usedBuffer / getBufferSize();
+
+        // if (bufferUsage > bufferThreshold) {
+        // return; // stop kirim jika buffer penuh
+        // }
+
+        // // FORWARD MESSAGE
+
         tryForwardMessages();
     }
 
     private void tryForwardMessages() {
+
         List<Connection> connections = getConnections();
 
         if (connections.size() == 0)
             return;
 
         for (Connection con : connections) {
+
             DTNHost other = con.getOtherNode(getHost());
 
             if (isTransferring()) {
-                return; 
+                return; // stop jika sudah mulai transfer
             }
 
             for (Message m : getMessageCollection()) {
-                
-                // 1. CEK THRESHOLD BUFFER
+                // NARA: jangan kirim jika buffer sudah melewati atau di threshold
+                // if (getBufferSize() / 1000.0 >= bufferThreshold) { //step 1: cek threshold
+                // buffer
+                // return;
+                // }
                 double usedBuffer = getBufferSize() - getFreeBufferSize();
                 double bufferUsage = usedBuffer / getBufferSize();
 
                 if (bufferUsage > bufferThreshold) {
-                    break; 
+                    return; // stop kirim jika buffer penuh
                 }
 
-                // 2. CEK THRESHOLD BATERAI
-                double battery = getHost().getComBus().getDouble(ENERGY_VALUE_ID, this.configMaxEnergy);
-                double batteryPercentage = battery / this.configMaxEnergy;
+                double battery = getHost().getComBus().getDouble("Energy.value", 1000.0);
 
-                if (batteryPercentage < batteryThreshold) { 
-                    break;
+                if (battery < batteryThreshold) { // step 2: cek threshold baterai
+                    return; // stop kirim jika baterai rendah
                 }
-
+                // Kirim jika tujuan langsung
                 if (m.getTo() == other) {
-                    if (startTransfer(m, con) >= 0) {
-                        return; 
-                    }
+                    startTransfer(m, con);
+                    return;
                 }
 
+                // Kirim jika node lain belum punya pesan
                 if (!other.getRouter().hasMessage(m.getId())) {
-                    if (startTransfer(m, con) >= 0) {
-                        return; 
-                    }
+                    startTransfer(m, con);
+                    return;
                 }
             }
         }
